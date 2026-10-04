@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "mimosa-hook-status/v1",
+  "recordedAt": "2026-09-25T18:45:14.874Z",
+  "sessionId": "sess_1328f2ee-9773-4f36-900e-dc785cbea313",
+  "event": "PostToolUse",
+  "toolName": "Edit",
+  "file": "sahou-harness/serve_ui_preview.py",
+  "outcome": "inconclusive",
+  "coverage": "partial",
+  "findingCount": 0,
+  "durationMs": 10024,
+  "hostState": "hook_complete",
+  "reportHint": ".mimosa/reports/"
+}

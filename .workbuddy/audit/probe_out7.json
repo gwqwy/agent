@@ -1,0 +1,59 @@
+{
+ "500x450": {
+  "before": {
+   "__error": "{\"exceptionId\":1,\"text\":\"Uncaught\",\"lineNumber\":2,\"columnNumber\":79,\"scriptId\":\"5\",\"stackTrace\":{\"callFrames\":[{\"functionName\":\"\",\"scriptId\":\"5\",\"url\":\"\",\"lineNumber\":2,\"columnNumber\":79}]},\"exception\":{\"type\":\"object\",\"subtype\":\"error\",\"className\":\"TypeError\",\"description\":\"TypeError: Cannot read p"
+  },
+  "dirRow": {
+   "text": "📁alpha",
+   "cx": 436,
+   "cy": -488,
+   "hit": null
+  },
+  "afterClickWithoutScrollFix": "{\"crumb\":\"📁 /（工作区根目录）\",\"rows\":63}",
+  "afterScrollToTop": "{\"scrollY\":0,\"asideRightTop\":0}",
+  "afterClickAndScrollFix": "{\"crumb\":\"📁 alpha\",\"rows\":82}"
+ },
+ "620x450": {
+  "before": {
+   "__error": "{\"exceptionId\":2,\"text\":\"Uncaught\",\"lineNumber\":2,\"columnNumber\":79,\"scriptId\":\"5\",\"stackTrace\":{\"callFrames\":[{\"functionName\":\"\",\"scriptId\":\"5\",\"url\":\"\",\"lineNumber\":2,\"columnNumber\":79}]},\"exception\":{\"type\":\"object\",\"subtype\":\"error\",\"className\":\"TypeError\",\"description\":\"TypeError: Cannot read p"
+  },
+  "dirRow": {
+   "text": "📁alpha",
+   "cx": 436,
+   "cy": -488,
+   "hit": null
+  },
+  "afterClickWithoutScrollFix": "{\"crumb\":\"📁 /（工作区根目录）\",\"rows\":63}",
+  "afterScrollToTop": "{\"scrollY\":0,\"asideRightTop\":0}",
+  "afterClickAndScrollFix": "{\"crumb\":\"📁 alpha\",\"rows\":82}"
+ },
+ "924x581": {
+  "before": {
+   "__error": "{\"exceptionId\":3,\"text\":\"Uncaught\",\"lineNumber\":2,\"columnNumber\":79,\"scriptId\":\"5\",\"stackTrace\":{\"callFrames\":[{\"functionName\":\"\",\"scriptId\":\"5\",\"url\":\"\",\"lineNumber\":2,\"columnNumber\":79}]},\"exception\":{\"type\":\"object\",\"subtype\":\"error\",\"className\":\"TypeError\",\"description\":\"TypeError: Cannot read p"
+  },
+  "dirRow": {
+   "text": "📁alpha",
+   "cx": 740,
+   "cy": 141,
+   "hit": "t-name"
+  },
+  "afterClickWithoutScrollFix": "{\"crumb\":\"📁 alpha\",\"rows\":82}",
+  "afterScrollToTop": "{\"scrollY\":0,\"asideRightTop\":0}",
+  "afterClickAndScrollFix": "{\"crumb\":\"📁 alpha/deep1\",\"rows\":1}"
+ },
+ "1180x741": {
+  "before": {
+   "__error": "{\"exceptionId\":4,\"text\":\"Uncaught\",\"lineNumber\":2,\"columnNumber\":79,\"scriptId\":\"5\",\"stackTrace\":{\"callFrames\":[{\"functionName\":\"\",\"scriptId\":\"5\",\"url\":\"\",\"lineNumber\":2,\"columnNumber\":79}]},\"exception\":{\"type\":\"object\",\"subtype\":\"error\",\"className\":\"TypeError\",\"description\":\"TypeError: Cannot read p"
+  },
+  "dirRow": {
+   "text": "📁alpha",
+   "cx": 996,
+   "cy": 141,
+   "hit": "t-name"
+  },
+  "afterClickWithoutScrollFix": "{\"crumb\":\"📁 alpha\",\"rows\":82}",
+  "afterScrollToTop": "{\"scrollY\":0,\"asideRightTop\":0}",
+  "afterClickAndScrollFix": "{\"crumb\":\"📁 alpha/deep1\",\"rows\":1}"
+ },
+ "errors": "[]"
+}

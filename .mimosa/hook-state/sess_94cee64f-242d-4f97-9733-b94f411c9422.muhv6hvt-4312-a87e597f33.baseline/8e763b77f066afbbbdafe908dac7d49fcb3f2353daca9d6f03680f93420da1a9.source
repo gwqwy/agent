@@ -1,0 +1,54 @@
+"""MCP 客户端插件：stdio / SSE / HTTP 三种传输，工具直接并入 agent 工具集。
+
+连接在 ctx.effect 中建立，disposer 负责断开——卸载插件即自动回收连接。
+"""
+
+from __future__ import annotations
+
+import asyncio
+from typing import Callable
+
+
+def register(ctx) -> None:
+    host = ctx.host
+    config = host.profile.load_config()
+    servers = config.get("mcpServers") or {}
+    if not servers:
+        return
+
+    connections = []  # 已建立的 MCPServer 连接
+
+    def disconnect_all() -> None:
+        for server in connections:
+            try:
+                asyncio.run(server.disconnect())
+            except Exception:  # noqa: BLE001
+                pass
+        connections.clear()
+
+    def connect_all() -> Callable:
+        from nanoagent.mcp import MCPServer
+
+        tools = []
+        for name, cfg in servers.items():
+            try:
+                if cfg.get("url"):
+                    transport = (cfg.get("type") or "http").lower()
+                    builder = MCPServer.connect_sse if transport == "sse" else MCPServer.connect_http
+                    server = asyncio.run(builder(cfg["url"], cfg.get("headers")))
+                else:
+                    server = asyncio.run(MCPServer.connect_stdio(
+                        cfg["command"], cfg.get("args") or [], cfg.get("env")))
+                connections.append(server)
+                tools.extend(asyncio.run(server.tools()))
+            except Exception as exc:  # noqa: BLE001 —— 单个服务器失败不阻断
+                ctx.skipped.append(f"mcp:{name}: {type(exc).__name__}: {exc}")
+        for tool in tools:
+            ctx.tools.register(tool)
+
+        def dispose() -> None:
+            disconnect_all()
+
+        return dispose
+
+    ctx.effect(connect_all)

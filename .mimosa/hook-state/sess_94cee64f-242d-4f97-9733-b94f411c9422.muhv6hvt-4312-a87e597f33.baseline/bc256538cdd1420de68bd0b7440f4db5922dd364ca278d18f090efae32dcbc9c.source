@@ -1,0 +1,95 @@
+"""卅码 Agent：模型池与运行时。
+
+基于 nanoagent 框架实现。设计要点：
+    - 模型配置全部来自 JSON 配置文件（sahou.agent.configPath，默认 .sahou/agent.json），
+      不使用 .env 文件
+    - ModelPool 持有多个 LLM 实例，可随时切换当前模型
+    - 自主切换：把 switch_model / list_models 注册为 agent 工具，
+      模型在执行任务时可以自己决定换用哪个模型（比如写代码用强模型、
+      简单问答用快模型），人也可以在编辑器面板里手动切
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+
+class ModelPool:
+    """多模型实例池：从 JSON 配置构建，支持运行时切换。"""
+
+    def __init__(self, config: Dict[str, Any]):
+        self._models: Dict[str, Any] = {}
+        self._order: List[str] = []
+        self.current: str = ""
+        for entry in config.get("models") or []:
+            name = str(entry.get("name") or "").strip()
+            if not name:
+                continue
+            self._models[name] = self._build_llm(entry)
+            self._order.append(name)
+        if not self._models:
+            raise ValueError("配置里没有可用模型：请在 models 数组里至少配置一个模型")
+        default = config.get("default") or self._order[0]
+        if default not in self._models:
+            raise ValueError(f"默认模型 '{default}' 不在 models 列表里: {', '.join(self._order)}")
+        self.current = default
+
+    @staticmethod
+    def _build_llm(entry: Dict[str, Any]) -> Any:
+        """按 provider 构建模型客户端；配置缺项时给出明确错误。"""
+        provider = (entry.get("provider") or "openai").lower()
+        model = entry.get("model")
+        api_key = entry.get("api_key")
+        base_url = entry.get("base_url")
+        if not model or not api_key:
+            raise ValueError(f"模型 '{entry.get('name')}' 缺少 model 或 api_key 配置")
+        if provider == "anthropic":
+            from nanoagent import AnthropicLLM
+
+            return AnthropicLLM(
+                model=model, api_key=api_key,
+                base_url=base_url or "https://api.anthropic.com",
+            )
+        if provider == "openai":
+            from nanoagent import LLM
+
+            kwargs: Dict[str, Any] = {"model": model, "api_key": api_key}
+            if base_url:
+                kwargs["base_url"] = base_url
+            return LLM(**kwargs)
+        raise ValueError(f"不支持的 provider: {provider}（可选 openai / anthropic）")
+
+    # ------------------------------------------------------------------
+    def get(self) -> Any:
+        """当前模型客户端。"""
+        return self._models[self.current]
+
+    def names(self) -> List[str]:
+        return list(self._order)
+
+    def info(self) -> Dict[str, Any]:
+        return {"models": self._order, "current": self.current}
+
+    def switch(self, name: str) -> str:
+        """切换当前模型；名字不存在时返回错误说明（不抛异常，方便回给模型）。"""
+        if name not in self._models:
+            return f"错误：没有模型 '{name}'，可用: {', '.join(self._order)}"
+        previous = self.current
+        self.current = name
+        return f"已从 {previous} 切换到 {name}"
+
+
+def load_config(config_path: str | Path) -> Dict[str, Any]:
+    """读取 JSON 配置文件（卅码 Agent 不使用 .env，全部配置集中在这里）。"""
+    path = Path(config_path)
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"找不到 agent 配置文件: {path}\n"
+            "请从 agent/agent.config.example.json 复制一份并填入你的模型信息。"
+        )
+    config = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(config, dict):
+        raise ValueError(f"配置文件格式错误（应为 JSON 对象）: {path}")
+    return config

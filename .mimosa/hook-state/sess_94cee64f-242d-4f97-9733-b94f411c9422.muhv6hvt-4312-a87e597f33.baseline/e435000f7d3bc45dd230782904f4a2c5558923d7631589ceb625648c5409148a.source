@@ -1,0 +1,40 @@
+"""Shell 工具插件：权限门（permissions.shell = ask / allow / deny）。"""
+
+from __future__ import annotations
+
+import subprocess
+
+
+def register(ctx) -> None:
+    host = ctx.host
+
+    def run_command(command: str, timeout: int = 60) -> str:
+        """在工作区执行 shell 命令并返回输出（受权限门控制）。
+
+        Args:
+            command: 完整命令行
+            timeout: 超时秒数
+        """
+        config = host.profile.load_config()
+        mode = (config.get("permissions") or {}).get("shell", "ask")
+        if mode == "deny":
+            return "错误：shell 命令被权限配置拒绝（permissions.shell=deny）"
+        if mode == "ask":
+            confirm = getattr(host, "confirm", None)
+            if confirm is None or not confirm(f"执行命令: {command}"):
+                return "错误：命令未获人工确认，已拒绝执行"
+        try:
+            completed = subprocess.run(
+                command, shell=True, cwd=str(host.workspace),
+                capture_output=True, text=True, timeout=timeout,
+                encoding="utf-8", errors="replace",
+            )
+        except FileNotFoundError:
+            return f"错误：找不到命令: {command}"
+        except subprocess.TimeoutExpired:
+            return f"错误：命令超时（>{timeout}s）"
+        output = (completed.stdout or "") + (completed.stderr or "")
+        out = output.strip() or "（无输出）"
+        return f"[exit {completed.returncode}] " + (out[:4000] + f"\n...（共 {len(out)} 字符，已截断）" if len(out) > 4000 else out)
+
+    ctx.tools.register(run_command)

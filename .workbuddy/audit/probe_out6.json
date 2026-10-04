@@ -1,0 +1,5 @@
+{
+ "view": "{\"innerW\":500,\"innerH\":450,\"dpr\":1,\"scrollY\":629,\"docScrollTop\":629,\"htmlH\":1107,\"bodyH\":1107,\"compat\":\"CSS1Compat\",\"visualH\":450}",
+ "boxes": "{\"app\":{\"top\":-629,\"bottom\":-179,\"h\":450},\"asideRight\":{\"top\":-629,\"bottom\":-179,\"h\":450},\"rpWs\":{\"top\":-554,\"bottom\":-193,\"h\":361},\"pane\":{\"top\":-513,\"bottom\":-193,\"h\":320},\"main\":{\"top\":-629,\"bottom\":-179,\"h\":450},\"log\":{\"top\":130,\"bottom\":166,\"h\":36},\"composer\":{\"top\":166,\"bottom\":460,\"h\":294},\"hero\":{\"top\":-629,\"bottom\":130,\"h\":759},\"rows\":63,\"crumb\":\"📁 /（工作区根目录）\"}",
+ "errors": "[]"
+}

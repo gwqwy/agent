@@ -1,0 +1,58 @@
+{
+ "dupIds": "[]",
+ "vp_1180x780": {
+  "tabClick": {
+   "tabHit": "📁 工作区",
+   "activeAfterTabClick": "rp-ws"
+  },
+  "rows": 63,
+  "dirRow": {
+   "text": "📁alpha",
+   "cx": 996,
+   "cy": 141,
+   "hitIsSelf": true
+  },
+  "afterDirClick": "{\"crumb\":\"📁 alpha\",\"rows\":82}",
+  "paneBox": "{\"paneH\":650,\"paneTop\":116,\"paneBottom\":766,\"asideH\":780,\"asideTop\":0,\"clientH\":650,\"scrollH\":2156}"
+ },
+ "vp_1180x621": {
+  "tabClick": {
+   "tabHit": "📁 工作区",
+   "activeAfterTabClick": "rp-ws"
+  },
+  "rows": 82,
+  "dirRow": {
+   "text": "📁deep1",
+   "cx": 996,
+   "cy": 141,
+   "hitIsSelf": true
+  },
+  "afterDirClick": "{\"crumb\":\"📁 alpha/deep1\",\"rows\":1}",
+  "paneBox": "{\"paneH\":491,\"paneTop\":116,\"paneBottom\":607,\"asideH\":621,\"asideTop\":0,\"clientH\":491,\"scrollH\":491}"
+ },
+ "vp_941x621": {
+  "tabClick": {
+   "tabHit": "📁 工作区",
+   "activeAfterTabClick": "rp-ws"
+  },
+  "rows": 1,
+  "dirRow": {
+   "error": "no dir"
+  },
+  "afterDirClick": "{\"crumb\":\"📁 alpha/deep1\",\"rows\":1}",
+  "paneBox": "{\"paneH\":491,\"paneTop\":116,\"paneBottom\":607,\"asideH\":621,\"asideTop\":0,\"clientH\":491,\"scrollH\":491}"
+ },
+ "vp_1180x400": {
+  "tabClick": {
+   "tabHit": "📁 工作区",
+   "activeAfterTabClick": "rp-ws"
+  },
+  "rows": 1,
+  "dirRow": {
+   "error": "no dir"
+  },
+  "afterDirClick": "{\"crumb\":\"📁 alpha/deep1\",\"rows\":1}",
+  "paneBox": "{\"paneH\":270,\"paneTop\":116,\"paneBottom\":386,\"asideH\":400,\"asideTop\":0,\"clientH\":270,\"scrollH\":270}"
+ },
+ "errors": "[]"
+}

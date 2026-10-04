@@ -1,0 +1,279 @@
+"""卅码 Agent 桥测试（运行方式见文件底部，需要已安装 nanoagent 的 Python）。"""
+
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from bridge import AgentBridge
+from model_pool import ModelPool, load_config
+
+# 用一个真实的 nanoagent 模型客户端结构做冒烟：不联网的部分走 MockLLM
+from nanoagent.llm import LLMResponse
+
+
+class FakeLLM:
+    """零网络模型客户端：验证 ModelPool 切换与 agent 工具链。"""
+
+    model = "fake"
+
+    def __init__(self, tag):
+        self.tag = tag
+        self.total_usage = {"prompt_tokens": 0, "completion_tokens": 0}
+
+    def chat(self, messages, tools=None):
+        return LLMResponse(content=f"[{self.tag}] 收到")
+
+
+def make_config(tmp: Path, **overrides) -> Path:
+    config = {
+        "default": "a",
+        "models": [
+            {"name": "a", "provider": "fake-a"},
+            {"name": "b", "provider": "fake-b"},
+        ],
+    }
+    config.update(overrides)
+    path = tmp / "agent.json"
+    path.write_text(json.dumps(config, ensure_ascii=False), encoding="utf-8")
+    return path
+
+
+class ModelPoolTests(unittest.TestCase):
+    def test_switch_and_info(self):
+        pool = ModelPool.__new__(ModelPool)  # 跳过 _build_llm（需要真实 provider）
+        pool._models = {"a": FakeLLM("a"), "b": FakeLLM("b")}
+        pool._order = ["a", "b"]
+        pool.current = "a"
+        self.assertEqual(pool.get().tag, "a")
+        result = pool.switch("b")
+        self.assertIn("切换到 b", result)
+        self.assertEqual(pool.get().tag, "b")
+        self.assertIn("没有模型", pool.switch("不存在"))
+        self.assertEqual(pool.info(), {"models": ["a", "b"], "current": "b"})
+
+    def test_load_config_errors(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(FileNotFoundError):
+                load_config(Path(tmp) / "nope.json")
+            bad = Path(tmp) / "bad.json"
+            bad.write_text("[]", encoding="utf-8")
+            with self.assertRaises(ValueError):
+                load_config(bad)
+
+
+class BridgeToolTests(unittest.TestCase):
+    def _bridge(self, tmp: Path) -> AgentBridge:
+        config = {
+            "default": "main",
+            "models": [{"name": "main", "provider": "x"}],
+        }
+        config_path = tmp / "agent.json"
+        config_path.write_text(json.dumps(config), encoding="utf-8")
+        bridge = AgentBridge.__new__(AgentBridge)
+        bridge.config_path = config_path
+        bridge.config = config
+        bridge.pool = ModelPool.__new__(ModelPool)
+        bridge.pool._models = {"main": FakeLLM("main")}
+        bridge.pool._order = ["main"]
+        bridge.pool.current = "main"
+        bridge.workspace = tmp
+        bridge.sahou_exe = "sahou"
+        bridge.agent = None  # 工具方法不依赖 agent 实例
+        return bridge
+
+    def test_workspace_jail(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bridge = self._bridge(Path(tmp))
+            with self.assertRaises(Exception):
+                bridge._safe_path("../escape.txt")
+            bridge.write_file("src/你好.saho", "打印(\"你好\")")
+            self.assertIn("你好", bridge.read_file("src/你好.saho"))
+
+    def test_run_sahou_missing_interpreter(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bridge = self._bridge(Path(tmp))
+            bridge.write_file("hi.saho", "打印(1)")
+            result = bridge.run_sahou("hi.saho")
+            self.assertIn("错误", result)  # 机器上没有 sahou 命令时的友好报错
+
+    def test_handle_actions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bridge = self._bridge(Path(tmp))
+            status = bridge.handle("status")
+            self.assertTrue(status["ok"])
+            self.assertEqual(status["data"]["model"], "main")
+
+            switch = bridge.handle("switch", {"name": "不存在"})
+            self.assertTrue(switch["ok"])
+            self.assertIn("没有模型", switch["data"]["result"])
+
+            unknown = bridge.handle("什么鬼")
+            self.assertFalse(unknown["ok"])
+
+    def test_stdio_protocol_roundtrip(self):
+        """子进程起 agent_server.py 走一遍完整协议（用假模型避免联网）。"""
+        with tempfile.TemporaryDirectory() as tmp:
+            entry = Path(tmp) / "entry.py"
+            config = Path(tmp) / "agent.json"
+            config.write_text(json.dumps({
+                "default": "main",
+                "models": [{"name": "main", "provider": "x"}],
+            }), encoding="utf-8")
+            agent_dir = str(Path(__file__).resolve().parent)
+            entry.write_text(
+                "import sys\n"
+                f"sys.path.insert(0, r'{agent_dir}')\n"
+                "from nanoagent.llm import LLMResponse\n"
+                "class FakeLLM:\n"
+                "    def __init__(self, tag):\n"
+                "        self.tag = tag\n"
+                "        self.total_usage = {}\n"
+                "    def chat(self, messages, tools=None):\n"
+                "        return LLMResponse(content='假回答')\n"
+                "from model_pool import ModelPool\n"
+                "ModelPool._build_llm = staticmethod(lambda entry: FakeLLM(entry))\n"
+                "from agent_server import serve\n"
+                "from bridge import AgentBridge\n"
+                f"serve(AgentBridge(r'{config}', r'{tmp}'))\n",
+                encoding="utf-8",
+            )
+            proc = subprocess.run(
+                [sys.executable, str(entry)],
+                input=json.dumps({"id": 1, "action": "chat", "payload": {"message": "你好"}}) + "\n"
+                      + json.dumps({"id": 2, "action": "status"}) + "\n",
+                capture_output=True, text=True, encoding="utf-8", timeout=60,
+            )
+            lines = [json.loads(l) for l in proc.stdout.splitlines() if l.strip()]
+            self.assertEqual(len(lines), 2)
+            self.assertEqual(lines[0]["data"]["reply"], "假回答")
+            self.assertEqual(lines[1]["data"]["model"], "main")
+
+
+class ModelConfigTests(unittest.TestCase):
+    """可视化模型设置面板背后的 get_models / save_models 动作。"""
+
+    def _bridge(self, tmp: Path) -> AgentBridge:
+        config = {
+            "default": "main",
+            "models": [{"name": "main", "provider": "x"}],
+        }
+        config_path = tmp / "agent.json"
+        config_path.write_text(json.dumps(config), encoding="utf-8")
+        bridge = AgentBridge.__new__(AgentBridge)
+        bridge.config_path = config_path
+        bridge.config = config
+        bridge.pool = ModelPool.__new__(ModelPool)
+        bridge.pool._models = {"main": FakeLLM("main")}
+        bridge.pool._order = ["main"]
+        bridge.pool.current = "main"
+        bridge.workspace = tmp
+        bridge.sahou_exe = "sahou"
+        bridge.memory = None
+        bridge.agent = None
+        return bridge
+
+    def test_get_models_returns_full_config(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bridge = self._bridge(Path(tmp))
+            data = bridge.handle("get_models")["data"]
+            self.assertEqual(data["default"], "main")
+            self.assertEqual(data["models"][0]["name"], "main")
+            self.assertTrue(data["config_path"].endswith("agent.json"))
+
+    def test_save_models_writes_and_rebuilds(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bridge = self._bridge(Path(tmp))
+            # 热重建会真的构建模型客户端——用假客户端替换（测后恢复）
+            from model_pool import ModelPool as _M
+            original_build = _M._build_llm
+            _M._build_llm = staticmethod(lambda entry: FakeLLM(entry["name"]))
+            try:
+                result = bridge.handle("save_models", {
+                    "models": [
+                        {"name": "alpha", "provider": "openai", "model": "m1", "api_key": "k"},
+                        {"name": "beta", "provider": "openai", "model": "m2", "api_key": "k2"},
+                    ],
+                    "default": "beta",
+                })["data"]
+            finally:
+                _M._build_llm = original_build
+            self.assertEqual(result["current"], "beta")
+            self.assertEqual(result["models"], ["alpha", "beta"])
+            # 配置文件确实写回
+            on_disk = json.loads((Path(tmp) / "agent.json").read_text(encoding="utf-8"))
+            self.assertEqual(on_disk["default"], "beta")
+            self.assertEqual(len(on_disk["models"]), 2)
+            # 后续 status 用新模型
+            self.assertEqual(bridge.handle("status")["data"]["model"], "beta")
+
+    def test_save_models_validations(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bridge = self._bridge(Path(tmp))
+            with self.assertRaises(ValueError):  # 缺 api_key
+                bridge.handle("save_models", {"models": [{"name": "a", "provider": "x", "model": "m"}]})
+            with self.assertRaises(ValueError):  # 名称重复
+                bridge.handle("save_models", {"models": [
+                    {"name": "a", "provider": "x", "model": "m", "api_key": "k"},
+                    {"name": "a", "provider": "x", "model": "m", "api_key": "k"}]})
+            with self.assertRaises(ValueError):  # provider 不支持
+                bridge.handle("save_models", {"models": [
+                    {"name": "a", "provider": "gemini", "model": "m", "api_key": "k"}]})
+            with self.assertRaises(ValueError):  # 默认模型不在列表里
+                bridge.handle("save_models", {"models": [
+                    {"name": "a", "provider": "x", "model": "m", "api_key": "k"}], "default": "zzz"})
+            # 空列表
+            with self.assertRaises(ValueError):
+                bridge.handle("save_models", {"models": []})
+
+
+class DegradedModeTests(unittest.TestCase):
+    """agent_server 的降级模式：初始化失败进程不退出，且能从设置面板引导恢复。"""
+
+    def test_degraded_lifecycle_via_subprocess(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            agent_dir = str(Path(__file__).resolve().parent)
+            missing_config = str(Path(tmp) / "nonexistent" / "agent.json")
+            entry = Path(tmp) / "entry.py"
+            entry.write_text(
+                "import sys\n"
+                f"sys.path.insert(0, r'{agent_dir}')\n"
+                "from agent_server import main\n"
+                f"sys.argv = ['agent_server.py', '--config', r'{missing_config}', '--workspace', r'{tmp}']\n"
+                "main()\n",
+                encoding="utf-8",
+            )
+            requests = "\n".join([
+                json.dumps({"id": 1, "action": "chat", "payload": {"message": "hi"}}),
+                json.dumps({"id": 2, "action": "get_models"}),
+                # 保存一个（故意无效的）配置：写盘成功但真实 agent 起不来 → 返回可读错误
+                json.dumps({"id": 3, "action": "save_models", "payload": {"models": [
+                    {"name": "a", "provider": "x", "model": "m", "api_key": "k"}], "default": "a"}}),
+                # 配置已写盘，get_models 走降级（degraded 的 _real 为 None）→ 仍返回模板
+                json.dumps({"id": 4, "action": "status"}),
+            ]) + "\n"
+            proc = subprocess.run(
+                [sys.executable, str(entry)], input=requests,
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120,
+            )
+            lines = [json.loads(l) for l in proc.stdout.splitlines() if l.strip()]
+            self.assertEqual(len(lines), 4)
+            self.assertFalse(lines[0]["ok"])       # chat：给出可操作的引导
+            self.assertIn("模型设置", lines[0]["error"])
+            self.assertTrue(lines[1]["ok"])        # get_models：空模板
+            self.assertEqual(lines[1]["data"]["models"], [])
+            self.assertFalse(lines[2]["ok"])       # 无效 provider：agent 起不来
+            self.assertIn("启动失败", lines[2]["error"])
+            self.assertTrue(lines[3]["ok"])        # status 始终可用
+            # 配置文件确实写盘（在 nonexistent 子目录里被自动创建）
+            self.assertTrue((Path(tmp) / "nonexistent" / "agent.json").is_file())
+
+
+if __name__ == "__main__":
+    unittest.main()
