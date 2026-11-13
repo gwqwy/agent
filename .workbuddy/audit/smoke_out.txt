@@ -1,2 +1,0 @@
-[pywebview] Failed to delete user data folder: 'NoneType' object has no attribute 'BrowserProcessId'
-SMOKE RESULT: timeout
