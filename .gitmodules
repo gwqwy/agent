@@ -1,0 +1,12 @@
+[submodule "nanoagent"]
+	path = nanoagent
+	url = https://github.com/gwqwy/nanoagent
+	branch = main
+[submodule "sahou"]
+	path = sahou
+	url = https://github.com/gwqwy/sahou.git
+	branch = main
+[submodule "sahou-harness"]
+	path = sahou-harness
+	url = https://github.com/gwqwy/sahou-harness
+	branch = main
