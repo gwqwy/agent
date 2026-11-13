@@ -1,7 +1,7 @@
 {
   "generated_by": "build_index.py",
   "root": "E:\\文件\\编程文件\\agent",
-  "total_entries": 327,
+  "total_entries": 338,
   "parts": [
     {
       "file": "01-nanoagent-core.md",
@@ -21,7 +21,7 @@
       "file": "03-sahou-compiler.md",
       "project": "sahou",
       "label": "sahou · 编译器、内建模块与测试脚本",
-      "count": 78,
+      "count": 80,
       "order": 3
     },
     {
@@ -35,28 +35,29 @@
       "file": "05-sahou-harness.md",
       "project": "sahou-harness",
       "label": "sahou-harness · 微内核、桌面端、插件、打包",
-      "count": 50,
+      "count": 57,
       "order": 5
     },
     {
       "file": "06-workspace-and-assets.md",
       "project": "workspace",
       "label": "工作区根 / 资产 / 构建产物 / 补充条目",
-      "count": 48,
+      "count": 51,
       "order": 6
     }
   ],
   "coverage": {
-    "disk_files": 499,
-    "indexed": 327,
-    "matched": 493,
+    "disk_files": 907,
+    "indexed": 338,
+    "matched": 900,
     "missing": [
-      "sahou-harness/harness/approvals.py",
-      "sahou-harness/harness/checkpoints.py",
-      "sahou-harness/tests/test_safety.py",
-      "sahou/internal/lsp/lsp_test.go",
-      "sahou/tests/share_codec.mjs",
-      "sahou/留言板.db"
+      ".gitattributes",
+      ".gitignore",
+      "AGENTS.md",
+      "README.md",
+      "aoci.code.txt",
+      "aoci.meta.txt",
+      "aoci.txt"
     ],
     "ghost": []
   },
@@ -2209,13 +2210,26 @@
     {
       "path": "sahou/internal/lsp/lsp.go",
       "project": "sahou",
-      "purpose": "`sahou lsp` 语言服务器（stdio JSON-RPC）：诊断 + 补全 + 悬停。",
-      "key_content": "- `var SharedJSON string`；`type sharedLang struct{ Keywords/Builtins/Modules/Stones }`；`var shared`；`parseShared`。\n- RPC 类型：`rpcMessage/position/rangeT/diagnostic/textDocumentItem/didOpenParams/didChangeParams/publishParams/completionParams`。\n- `completionItems`、`linePrefix`（UTF-16→字节换算）、`filterByPrefix`、`packageNames`。\n- `func Run()`（主循环：initialize/initialized/didOpen/didChange/didClose/completion/hover/shutdown/exit）。\n- `diagnostics`、`toDiag`、`publish`；`wordAt`、`hoverMarkdown`、`containsString`、`dynamicStoneMembers`；帧读 `mustJSON/writeMessage/readFrame/extractFrame`。",
+      "purpose": "`sahou lsp` 语言服务器（stdio JSON-RPC）：诊断 + 补全 + 悬停 + 跳转定义 + 重命名。",
+      "key_content": "- `var SharedJSON string`；`type sharedLang struct{ Keywords/Builtins/Modules/Stones }`；`var shared`；`parseShared`。\n- RPC 类型：`rpcMessage/position/rangeT/diagnostic/textDocumentItem/didOpenParams/didChangeParams/publishParams/completionParams`。\n- `completionItems`、`linePrefix`（UTF-16→字节换算）、`filterByPrefix`、`packageNames`。\n- `func Run()`（主循环：initialize/initialized/didOpen/didChange/didClose/completion/hover/shutdown/exit）。\n- `diagnostics`、`toDiag`、`publish`；`wordAt`、`hoverMarkdown`、`containsString`、`dynamicStoneMembers`；帧读 `mustJSON/writeMessage/readFrame/extractFrame`。\n- 跳转定义/重命名（批41）：`definitionFor/renameTargets/collectDefs`——同文件文本级扫描三类定义（`函数/func 名字(`、`设 名字 为`、`名字 =`），光标前最近定义优先（先调用后定义可跳）；重命名全文整词替换、拒绝含空格的非法新名；`utf16Col` 列换算、`stripComments` 剥注释防误配。",
       "api": "`Run`、`SharedJSON`。",
       "deps": "`errs`、`interp`、`lexer`、`parser`、`stonesrc`（+ encoding/json 等）。",
       "used_by": "`main.go`（`lsp` 子命令，先注入 `SharedJSON`）。",
       "impact": "编辑器诊断/补全/悬停；VS Code 扩展依赖。",
-      "notes": "悬停数据来自 `editors/shared/language.json`（未注入则悬停退化，诊断/补全不受影响）；补全上下文区分\"用 \\\"前缀\"/\"名字.成员\"/其它。\n## cmd/sahouwasm",
+      "notes": "悬停数据来自 `editors/shared/language.json`（未注入则悬停退化，诊断/补全不受影响）；补全上下文区分\"用 \\\"前缀\"/\"名字.成员\"/其它。批41 已知边界：跳转/重命名不区分作用域、不跨文件；单测见 `internal/lsp/lsp_test.go`。",
+      "extra": "",
+      "part": "03-sahou-compiler.md"
+    },
+    {
+      "path": "sahou/internal/lsp/lsp_test.go",
+      "project": "sahou",
+      "purpose": "LSP 跳转定义/重命名的 Go 单元测试（批41 新增）。",
+      "key_content": "三类定义查找与「先调用后定义」、重命名编辑集、非法新名拒绝、UTF-16 列换算、注释剥离。",
+      "api": "`go test ./internal/lsp`。",
+      "deps": "`internal/lsp`。",
+      "used_by": "无。",
+      "impact": "改 `lsp.go` 跳转/重命名逻辑后必须保持全绿。",
+      "notes": "纯 Go 单测，不依赖编辑器。",
       "extra": "",
       "part": "03-sahou-compiler.md"
     },
@@ -2987,6 +3001,19 @@
       "part": "03-sahou-compiler.md"
     },
     {
+      "path": "sahou/tests/share_codec.mjs",
+      "project": "sahou",
+      "purpose": "在线体验页分享链接编解码的回归测试（批41 新增，Node 直跑）。",
+      "key_content": "代码 ↔ base64url（`#code=`）往返；URL 安全字符校验（不含 `+/=`）。",
+      "api": "`node tests/share_codec.mjs` → 输出 SHARE-CODEC-OK。",
+      "deps": "无（零依赖 Node）。",
+      "used_by": "无。",
+      "impact": "改 `examples/在线体验/index.html` 的分享编解码后必须重跑。",
+      "notes": "与 wasm 无关，秒级完成。\n## cmd/sahouwasm",
+      "extra": "",
+      "part": "03-sahou-compiler.md"
+    },
+    {
       "path": "sahou/tests/stdlib.sh",
       "project": "sahou",
       "purpose": "标准库模块回归（随机/时间/数学/编码/系统）。",
@@ -3152,6 +3179,19 @@
       "used_by": "无。",
       "impact": "`main()` 签名变化会波及此处。",
       "notes": "极薄封装。",
+      "extra": "",
+      "part": "05-sahou-harness.md"
+    },
+    {
+      "path": "sahou-harness/harness/approvals.py",
+      "project": "sahou-harness",
+      "purpose": "shell/写文件的统一审批门（Ask/allow/deny + 会话内批准记忆 + 命令白名单 + 审计日志）。",
+      "key_content": "确认通道回调；白名单命中即放行（glob 归一化，`echo   hi` 与 `echo hi` 等价）；`echo hi` 获批 ≠ `echo hi && rm` 获批（不做前缀推断）；无确认通道时 fail-closed 并留档；allow 值会写入白名单；审计可关。",
+      "api": "",
+      "deps": "标准库（json/time/fnmatch/pathlib）。",
+      "used_by": "`tools_shell`、`tools_fs`、`desktop.py`（terminal/写文件门）、`tests/test_safety.py`。",
+      "impact": "改放行/拒绝语义会波及全部写路径测试（ShellApprovalTests/ApprovalGateTests）。",
+      "notes": "deny 优先于白名单与记忆。",
       "extra": "",
       "part": "05-sahou-harness.md"
     },
@@ -3481,6 +3521,32 @@
       "part": "05-sahou-harness.md"
     },
     {
+      "path": "sahou-harness/harness/builtins/workflow/*",
+      "project": "sahou-harness",
+      "purpose": "分任务执行工作流内置件（Manus 式）：plugin.json 声明 + register.py 执行器。",
+      "key_content": "单次模型调用规划 3~8 子任务（解析失败兜底单步）；每步全新 agent 串行执行（携带前序结果摘要）；执行通道全局仅一条；暂停/继续/停止；完成后综合答复经 schedule_store 回流发起会话 + 通知中心。",
+      "api": "",
+      "deps": "`workflow_store`、`chat_loop._max_iterations`、`schedule_store.write_back_result`、`notifications`。",
+      "used_by": "`desktop.py` 🧩 看板（workflow_list/get/create/pause/resume/stop/delete）。",
+      "impact": "改执行语义需同步 WorkflowStoreTests 与看板刷新。",
+      "notes": "批64 修复 delete 动作 NameError（import 漏 delete_workflow）。",
+      "extra": "",
+      "part": "05-sahou-harness.md"
+    },
+    {
+      "path": "sahou-harness/harness/checkpoints.py",
+      "project": "sahou-harness",
+      "purpose": "写文件/编辑前的检查点（快照 + 撤销）。",
+      "key_content": "写前快照入栈；undo 恢复；与 desktop apply_code/write 门联动。",
+      "api": "",
+      "deps": "标准库。",
+      "used_by": "`desktop.py`（apply_code 等）、`tests/test_safety.py`（CheckpointTests）。",
+      "impact": "撤销语义变更会波及写路径测试。",
+      "notes": "快照只存被改文件。",
+      "extra": "",
+      "part": "05-sahou-harness.md"
+    },
+    {
       "path": "sahou-harness/harness/cli.py",
       "project": "sahou-harness",
       "purpose": "命令行入口（`sha` 命令），组装运行时并按子命令分派。",
@@ -3559,6 +3625,19 @@
       "part": "05-sahou-harness.md"
     },
     {
+      "path": "sahou-harness/harness/notifications.py",
+      "project": "sahou-harness",
+      "purpose": "通知中心存储层（profile 内 notifications.json，推送/未读/已读/容量上限）。",
+      "key_content": "`push_notification`（超上限丢弃最旧）、`load_notifications`、`mark_read`、`unread_count`。",
+      "api": "",
+      "deps": "标准库。",
+      "used_by": "`desktop.py` 通知面板、`builtins/notifications`、`builtins/workflow`（完成推送）、`builtins/scheduler`。",
+      "impact": "JSON 结构变更需同步桌面端渲染。",
+      "notes": "MAX_NOTIFICATIONS 限量。",
+      "extra": "",
+      "part": "05-sahou-harness.md"
+    },
+    {
       "path": "sahou-harness/harness/procutil.py",
       "project": "sahou-harness",
       "purpose": "subprocess 辅助（2026-09-27）——抑制 GUI（--noconsole）进程里 spawn 控制台程序时的黑色 conhost 窗口闪现。",
@@ -3585,6 +3664,19 @@
       "part": "05-sahou-harness.md"
     },
     {
+      "path": "sahou-harness/harness/remote.py",
+      "project": "sahou-harness",
+      "purpose": "手机/浏览器远程访问服务（线程化 HTTP，只读会话列表 + 发消息，配对码鉴权）。",
+      "key_content": "`remote_config`（默认关、绑 127.0.0.1、随机 token 常驻 config.remote）；`check_token`（SHA-256 + 常数时比较）；`make_handler(app)`（闭包注入 `Handler.app`，仅暴露 sessions/history/send）；`RemoteServer`（start/stop 幂等，64KB 请求体上限）。",
+      "api": "",
+      "deps": "标准库 http.server/hmac/secrets。",
+      "used_by": "`desktop.py`（设置页开关）。",
+      "impact": "安全敏感面——不暴露文件与命令；改路由须保持白名单最小化。",
+      "notes": "批64 修复了 Handler.app 从未注入导致的 POST 必崩。",
+      "extra": "",
+      "part": "05-sahou-harness.md"
+    },
+    {
       "path": "sahou-harness/harness/schedule_store.py",
       "project": "sahou-harness",
       "purpose": "定时任务的存储层（2026-09-27 功能5）——scheduler 插件与 `sha schedule` CLI 共用的 tasks.json 读写/校验。",
@@ -3607,6 +3699,19 @@
       "used_by": "`harness/desktop.py::snippets_list/save/delete`、`harness/builtins/repl/register.py::run_snip`、`tests/test_desktop.py::Batch11FeatureTests`。",
       "impact": "`snippets` 键结构变更会同时影响桌面端菜单与 REPL 命令。",
       "notes": "不自己碰文件，全部走 Profile 锁；上限校验在 mutator 内抛 ValueError 以保证原子性。",
+      "extra": "",
+      "part": "05-sahou-harness.md"
+    },
+    {
+      "path": "sahou-harness/harness/workflow_store.py",
+      "project": "sahou-harness",
+      "purpose": "工作流文件存储层（`<profile>/workflows/<id>.json`，内置件与桌面端共用）。",
+      "key_content": "`new_workflow`（规划校验，空规划拒绝）、`load/save`（原子落盘）、`delete_workflow`（id 白名单防路径逃逸）、`list_workflows`（新的在前精简视图）、`active_workflow`（running/paused 占用执行通道）、`next_pending_index`（遗留 running 视为待重跑）、`mark_interrupted`（启动兜底）、`summary_text`（回流/通知摘要）。",
+      "api": "",
+      "deps": "`config.Profile/atomic_write_text`。",
+      "used_by": "`builtins/workflow`、`desktop.py` 工作流看板、`tests/test_new_plugins.py`（WorkflowStoreTests）。",
+      "impact": "JSON 形状变更需同步看板渲染与续跑语义。",
+      "notes": "纯函数 profile 进出，离线可测。",
       "extra": "",
       "part": "05-sahou-harness.md"
     },
@@ -3676,6 +3781,19 @@
       "part": "05-sahou-harness.md"
     },
     {
+      "path": "sahou-harness/tests/test_safety.py",
+      "project": "sahou-harness",
+      "purpose": "安全机制专项测试（审批门 + 检查点）。",
+      "key_content": "ApprovalGateTests（confirm_write 强制审批、无通道 fail-closed、shell allow 写白名单、ask 拒绝路径、diff 送审批者）；CheckpointTests（write 建检查点可撤销、edit_file 检查点恢复）。",
+      "api": "",
+      "deps": "`harness.approvals`、`harness.checkpoints`。",
+      "used_by": "`tools/run_tests.py` 全量入口。",
+      "impact": "改审批/检查点行为后必须全绿。",
+      "notes": "全离线（临时目录 profile）。",
+      "extra": "",
+      "part": "05-sahou-harness.md"
+    },
+    {
       "path": "sahou-harness/tools/*",
       "project": "sahou-harness",
       "purpose": "开发/打包/测试辅助脚本的统一目录（2026-09-26 批次 F 从仓库根 `git mv` 进来；7 个文件：`build_exe.py` / `run_tests.py` / `launcher_sha.py` / `launcher_desktop.py` / `make_icon.py` / `serve_ui_preview.py` / `smoke_desktop.py`）。",
@@ -3698,6 +3816,19 @@
       "used_by": "无。",
       "impact": "无。",
       "notes": "2026-09-26 用户清理了根目录的 `pip_faiss.log`、`pip_out.log`，**当前根目录已无 `*.log` 文件**，此条作为通配占位保留（各项目内部的 `_diag/*.log`、`.workbuddy/audit/*.log` 另有条目覆盖）。可随时清理，不属于源码。",
+      "extra": "",
+      "part": "06-workspace-and-assets.md"
+    },
+    {
+      "path": ".aoci/*",
+      "project": "workspace",
+      "purpose": "AOCI（仓库认知索引系统）的运行资产目录——baseline、治理配置、账本、事务历史、scope 变更审批工件与 verify 历史。",
+      "key_content": "config.json（scope 策略/预算）、baseline.json（源码指纹基线）、ledger.jsonl、transactions/、scope-change/。",
+      "api": "",
+      "deps": "由 aoci CLI/MCP 服务读写，不手工编辑。",
+      "used_by": "AOCI 工具链（aoci.txt / aoci.code.txt / aoci.meta.txt 的治理后端）。",
+      "impact": "损坏会触发 AOCI 恢复流程；不要手工改动。",
+      "notes": "工具运行资产，人只通过 aoci 命令交互。",
       "extra": "",
       "part": "06-workspace-and-assets.md"
     },
@@ -3905,7 +4036,7 @@
       "deps": "`harness.desktop`、`harness.config`、本机 Edge/pywebview。",
       "used_by": "无。",
       "impact": "无。",
-      "notes": "**均为一次性排查产物，可整体删除**；若保留，注意 `edgeprofile/` 体积与 `probe_out.txt` 中的环境信息。",
+      "notes": "**均为一次性排查产物，可整体删除**；若保留，注意 `edgeprofile/` 体积与 `probe_out.txt` 中的环境信息。\n## AOCI 与运行时杂项（2026-10-13 登记）",
       "extra": "",
       "part": "06-workspace-and-assets.md"
     },
@@ -4309,6 +4440,19 @@
       "used_by": "`sahou/examples/在线体验/index.html`、`examples/响应式/*.html`（各有副本）、`tests/playground_check.mjs`、`tests/wasm_reactive.mjs`。",
       "impact": "**升级 Go 版本后必须用 `go env GOROOT` 下的同名文件替换所有副本**，否则 wasm 加载失败。",
       "notes": "项目内**存在多份副本**（示例目录各一份），无自动同步脚本。",
+      "extra": "",
+      "part": "06-workspace-and-assets.md"
+    },
+    {
+      "path": "sahou/留言板.db",
+      "project": "workspace",
+      "purpose": "全栈示例（examples/留言板.saho）运行时生成的嵌入式数据库文件。",
+      "key_content": "`数据库` 模块的 JSON 原子落盘存储（列/自增/行）。",
+      "api": "",
+      "deps": "由留言板示例运行时创建。",
+      "used_by": "无（可删，重跑示例再生）。",
+      "impact": "无。",
+      "notes": "运行产物入库仅因示例曾在本仓根目录跑过；可安全删除。",
       "extra": "",
       "part": "06-workspace-and-assets.md"
     }

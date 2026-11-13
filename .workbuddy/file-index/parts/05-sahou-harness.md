@@ -829,3 +829,63 @@ CI（1）：`.github/workflows/ci.yml`
 <!-- 第62批 2026-09-30: 工具摘要落盘（chat_loop _attach_tools：ask/ask_stream/ask_with 三处，轻量视图 name+args摘要+result首300+ok 附到末条 assistant），前端 reviveTools 回放还原「更改/运行命令/工具调用」分组；切会话联动工作区（currentWsPath 全局 + selectSession 比较 sessions_meta.ws 后 switchWorkspace）；249+344 全绿；重建 dist -->
 
 <!-- 第63批 2026-09-30: 分任务执行工作流（Manus 式）——新内置件 workflow（规划 3~8 子任务→串行独立 agent 执行（带前序结果摘要），每步落盘断点续跑，暂停/继续/停止，完成综合答复回流会话+通知中心）；workflow_store.py 纯存取层（next_pending_index 视中断遗留 running 为待重跑，mark_interrupted 启动兜底）；右栏 🧩 看板（2.5s 轮询）+ composer 🧩 按钮（当前输入作大任务）；desktop workflow_list/get/create/pause/resume/stop/delete；251 条全绿；重建 dist -->
+
+<!-- 第64批 2026-10-13: 四处运行时缺陷修复（工作流看板删除 NameError=import 漏 delete_workflow；远程访问 POST 必崩=make_handler 从未注入 Handler.app；Git 智能提交 ValueError=_git_run 二元组被按三元组解包×4；office 预览恒失败=路径 str 传给收 bytes 的 _docx/_xlsx/_pptx_text）+ ruff 39→0 / mypy 25→0 双清零 + 历史批次模块补交入库（approvals/bootstrap/checkpoints/exporter/notifications/procutil/remote/snippets/workflow_store/builtins/tools_git/builtins/workflow/tests/test_safety.py/docs 规划）；251 条全绿；重建 dist -->
+
+## 批64 补交入库的模块条目（2026-10-13）
+
+### sahou-harness/harness/approvals.py
+- **用途**：shell/写文件的统一审批门（Ask/allow/deny + 会话内批准记忆 + 命令白名单 + 审计日志）。
+- **关键内容**：确认通道回调；白名单命中即放行（glob 归一化，`echo   hi` 与 `echo hi` 等价）；`echo hi` 获批 ≠ `echo hi && rm` 获批（不做前缀推断）；无确认通道时 fail-closed 并留档；allow 值会写入白名单；审计可关。
+- **依赖**：标准库（json/time/fnmatch/pathlib）。
+- **被依赖**：`tools_shell`、`tools_fs`、`desktop.py`（terminal/写文件门）、`tests/test_safety.py`。
+- **影响范围**：改放行/拒绝语义会波及全部写路径测试（ShellApprovalTests/ApprovalGateTests）。
+- **备注**：deny 优先于白名单与记忆。
+
+### sahou-harness/harness/checkpoints.py
+- **用途**：写文件/编辑前的检查点（快照 + 撤销）。
+- **关键内容**：写前快照入栈；undo 恢复；与 desktop apply_code/write 门联动。
+- **依赖**：标准库。
+- **被依赖**：`desktop.py`（apply_code 等）、`tests/test_safety.py`（CheckpointTests）。
+- **影响范围**：撤销语义变更会波及写路径测试。
+- **备注**：快照只存被改文件。
+
+### sahou-harness/harness/notifications.py
+- **用途**：通知中心存储层（profile 内 notifications.json，推送/未读/已读/容量上限）。
+- **关键内容**：`push_notification`（超上限丢弃最旧）、`load_notifications`、`mark_read`、`unread_count`。
+- **依赖**：标准库。
+- **被依赖**：`desktop.py` 通知面板、`builtins/notifications`、`builtins/workflow`（完成推送）、`builtins/scheduler`。
+- **影响范围**：JSON 结构变更需同步桌面端渲染。
+- **备注**：MAX_NOTIFICATIONS 限量。
+
+### sahou-harness/harness/remote.py
+- **用途**：手机/浏览器远程访问服务（线程化 HTTP，只读会话列表 + 发消息，配对码鉴权）。
+- **关键内容**：`remote_config`（默认关、绑 127.0.0.1、随机 token 常驻 config.remote）；`check_token`（SHA-256 + 常数时比较）；`make_handler(app)`（闭包注入 `Handler.app`，仅暴露 sessions/history/send）；`RemoteServer`（start/stop 幂等，64KB 请求体上限）。
+- **依赖**：标准库 http.server/hmac/secrets。
+- **被依赖**：`desktop.py`（设置页开关）。
+- **影响范围**：安全敏感面——不暴露文件与命令；改路由须保持白名单最小化。
+- **备注**：批64 修复了 Handler.app 从未注入导致的 POST 必崩。
+
+### sahou-harness/harness/workflow_store.py
+- **用途**：工作流文件存储层（`<profile>/workflows/<id>.json`，内置件与桌面端共用）。
+- **关键内容**：`new_workflow`（规划校验，空规划拒绝）、`load/save`（原子落盘）、`delete_workflow`（id 白名单防路径逃逸）、`list_workflows`（新的在前精简视图）、`active_workflow`（running/paused 占用执行通道）、`next_pending_index`（遗留 running 视为待重跑）、`mark_interrupted`（启动兜底）、`summary_text`（回流/通知摘要）。
+- **依赖**：`config.Profile/atomic_write_text`。
+- **被依赖**：`builtins/workflow`、`desktop.py` 工作流看板、`tests/test_new_plugins.py`（WorkflowStoreTests）。
+- **影响范围**：JSON 形状变更需同步看板渲染与续跑语义。
+- **备注**：纯函数 profile 进出，离线可测。
+
+### sahou-harness/harness/builtins/workflow/*（通配）
+- **用途**：分任务执行工作流内置件（Manus 式）：plugin.json 声明 + register.py 执行器。
+- **关键内容**：单次模型调用规划 3~8 子任务（解析失败兜底单步）；每步全新 agent 串行执行（携带前序结果摘要）；执行通道全局仅一条；暂停/继续/停止；完成后综合答复经 schedule_store 回流发起会话 + 通知中心。
+- **依赖**：`workflow_store`、`chat_loop._max_iterations`、`schedule_store.write_back_result`、`notifications`。
+- **被依赖**：`desktop.py` 🧩 看板（workflow_list/get/create/pause/resume/stop/delete）。
+- **影响范围**：改执行语义需同步 WorkflowStoreTests 与看板刷新。
+- **备注**：批64 修复 delete 动作 NameError（import 漏 delete_workflow）。
+
+### sahou-harness/tests/test_safety.py
+- **用途**：安全机制专项测试（审批门 + 检查点）。
+- **关键内容**：ApprovalGateTests（confirm_write 强制审批、无通道 fail-closed、shell allow 写白名单、ask 拒绝路径、diff 送审批者）；CheckpointTests（write 建检查点可撤销、edit_file 检查点恢复）。
+- **依赖**：`harness.approvals`、`harness.checkpoints`。
+- **被依赖**：`tools/run_tests.py` 全量入口。
+- **影响范围**：改审批/检查点行为后必须全绿。
+- **备注**：全离线（临时目录 profile）。

@@ -1,7 +1,7 @@
 # 工作区文件索引（FILE_INDEX）
 
 > **工作区**：`E:\文件\编程文件\agent`　|　**主题**：Agent + 中文编程语言
-> **索引规模**：**327 条条目**（含 31 条通配聚合）/ 覆盖 **493/499** 个候选文件（98.8%）（自动统计）
+> **索引规模**：**338 条条目**（含 33 条通配聚合）/ 覆盖 **900/907** 个候选文件（99.2%）（自动统计）
 > **明细来源**：`.workbuddy/file-index/parts/*.md`（六份分片，全字段）　|　**机读索引**：`.workbuddy/file-index/file-index.json`
 > **重新生成**：`python .workbuddy/file-index/build_index.py`
 > **本文件第 1–4 章为手工维护**（源：`.workbuddy/file-index/_master_header.md`），第 5–7 章为自动生成——**不要直接改速查表**。
@@ -323,11 +323,12 @@ main.go ─┬─> internal/encodesrc（读文件·编码嗅探）
 > 列为：`文件` | `用途` | `关键依赖` | `改动波及`（均截断，完整字段见第 7 节对应分片）。
 > 通配条目（`*`）代表一整组同类文件。
 
-### 5.1 工作区根 —— 环境、资产与构建产物（48 条）
+### 5.1 工作区根 —— 环境、资产与构建产物（50 条）
 
 | 文件 | 用途 | 关键依赖 | 改动波及 |
 |---|---|---|---|
 | `*.log` | 聚合条目，覆盖根目录残留的安装/运行日志。 | 无。 | 无。 |
+| `.aoci/*` | AOCI（仓库认知索引系统）的运行资产目录——baseline、治理配置、账本、事务历史、scope 变更审批工件与 verify 历史。 | 由 aoci CLI/MCP 服务读写，不手工编辑。 | 损坏会触发 AOCI 恢复流程；不要手工改动。 |
 | `.audit_tmp/*` | 外部审计报告核对（2026-09-26/27）的**临时**判定与复现脚本目录：`AUDIT_VERDICT.md`（26 条声明的逐条判定：已修复/仍存在/部分成立 + 修复批… | 无。 | 无（不入 git）。 |
 | `.mimosa/*` | Agent 运行时（ZCode/WorkBuddy）的 **hook 状态目录**——会话状态、续跑基线、锁。 | 无。 | 删除会丢失会话续跑状态。 |
 | `.workbuddy/*` | WorkBuddy/本 Agent 的项目侧数据——记忆、索引构建产物。 | 无。 | `memory/` 丢失会失去跨会话项目上下文。 |
@@ -375,6 +376,7 @@ main.go ─┬─> internal/encodesrc（读文件·编码嗅探）
 | `sahou/tests/playground_check.mjs` | 在线体验页等价测试**——在 Node 里加载 `sahou.wasm`，调用与页面同一入口的全局 `__sahou_run(src)`。 | `sahou/wasm_exec.js`、`sahou/sahou.wasm`。 | 改 wasm 入口或 stones 内嵌逻辑需同步。 |
 | `sahou/tests/wasm_reactive.mjs` | WASM 响应式回归测试**——`sahou.wasm` 在 Node 里直接解释 `.saho`，验证格子联动（`格子`）。 | `sahou.wasm`、`wasm_exec.js`。 | 改 `internal/interp/reactive.go` 或 `uimod` 需同步。 |
 | `sahou/wasm_exec.js` | Go 官方 **WASM 运行时胶水脚本**（`wasm_exec.js`），浏览器/Node 加载 `sahou.wasm` 必需。 | 与 Go 工具链版本绑定（随 `go` 版本变化）。 | 升级 Go 版本后必须用 `go env GOROOT` 下的同名文件替换所有副本**，否则 wasm 加载失败。 |
+| `sahou/留言板.db` | 全栈示例（examples/留言板.saho）运行时生成的嵌入式数据库文件。 | 由留言板示例运行时创建。 | 无。 |
 
 ### 5.2 nanoagent —— 轻量 Python Agent 框架（79 条）
 
@@ -460,7 +462,7 @@ main.go ─┬─> internal/encodesrc（读文件·编码嗅探）
 | `nanoagent/tests/test_workflow.py` | 测 `multi.py` 的 `Workflow`（反馈回路、PASS 判定、轮次上限、会话隔离）。 | `nanoagent.agent.Agent`、`nanoagent.memory.Memory`、`nanoagent.multi.{W… | `multi.py` 的 `_is_pass`、会话隔离、角色校验变更时需同步。 |
 | `nanoagent/tests/test_workflow_tools.py` | 测 **examples/09** 文件工具的安全（路径越界防护）。 | `importlib.util` 动态加载 `examples/09_workflow_with_tools.py`；运行时把模块的 `W… | 被测对象是示例文件本身**，改动 `examples/09_workflow_with_tools.py` 的 `_s… |
 
-### 5.3 sahou —— 「卅」中文编程语言（Go 工具链）（150 条）
+### 5.3 sahou —— 「卅」中文编程语言（Go 工具链）（152 条）
 
 | 文件 | 用途 | 关键依赖 | 改动波及 |
 |---|---|---|---|
@@ -550,7 +552,8 @@ main.go ─┬─> internal/encodesrc（读文件·编码嗅探）
 | `sahou/internal/interp/uimod_test.go` | 写页面无窗口路径测试（构造/到HTML/事件派发/镜像同步/参数校验）。 |  |  |
 | `sahou/internal/interp/value.go` | 值模型、显示/转换、深度相等、数值辅助。 | `fmt`、`math/big`、`strings`、`errs`、`parser`。 | 所有值语义（数=精确 `*big.Rat`、字典有序、显示规则、深度相等）；改动波及全部模块与 cases。 |
 | `sahou/internal/lexer/lexer.go` | 把源码切成记号；缩进仅排版；括号深度 0 才产生换行记号；双语关键字归一化。 | `errs`。 | 整个语言前端；改动波及 parser/transpile/format/lsp 及全部 cases 测试。 |
-| `sahou/internal/lsp/lsp.go` | `sahou lsp` 语言服务器（stdio JSON-RPC）：诊断 + 补全 + 悬停。 | `errs`、`interp`、`lexer`、`parser`、`stonesrc`（+ encoding/json 等）。 | 编辑器诊断/补全/悬停；VS Code 扩展依赖。 |
+| `sahou/internal/lsp/lsp.go` | `sahou lsp` 语言服务器（stdio JSON-RPC）：诊断 + 补全 + 悬停 + 跳转定义 + 重命名。 | `errs`、`interp`、`lexer`、`parser`、`stonesrc`（+ encoding/json 等）。 | 编辑器诊断/补全/悬停；VS Code 扩展依赖。 |
+| `sahou/internal/lsp/lsp_test.go` | LSP 跳转定义/重命名的 Go 单元测试（批41 新增）。 | `internal/lsp`。 | 改 `lsp.go` 跳转/重命名逻辑后必须保持全绿。 |
 | `sahou/internal/parser/parser.go` | AST 定义 + 递归下降语法分析器。 | `errs`、`lexer`。 | 整个语言语法；新增语句/表达式会波及 interp、transpile、lsp、format 及 cases。 |
 | `sahou/internal/stonesrc/stonesrc.go` | exe 自带 stones 包的唯一存放处（编译期 embed 注入 `FS`）。 | io/fs、sort、strings。 | 离线标准库包能力（18 包）、serve 运行时、补全与悬停数据。 |
 | `sahou/internal/transpile/rt.js` | 转译产物的 JS 运行时（`__saho_*` 辅助函数集合）。 |  |  |
@@ -610,12 +613,13 @@ main.go ─┬─> internal/encodesrc（读文件·编码嗅探）
 | `sahou/tests/packages.sh` | stones 标准库包回归。 |  |  |
 | `sahou/tests/run.sh` | 核心一致性测试（cases 快照 diff + 负向用例退出码/子串）。 |  |  |
 | `sahou/tests/run_all.sh` | 全量回归总闸。 |  |  |
+| `sahou/tests/share_codec.mjs` | 在线体验页分享链接编解码的回归测试（批41 新增，Node 直跑）。 | 无（零依赖 Node）。 | 改 `examples/在线体验/index.html` 的分享编解码后必须重跑。 |
 | `sahou/tests/stdlib.sh` | 标准库模块回归（随机/时间/数学/编码/系统）。 |  |  |
 | `sahou/tests/test.saho` | 手工玩具脚本。 | （语言）：内置 print 全角归一。 **被依赖**：人工。 **影响范围**：无自动回归。 **备注**：验证全角括号可读性。 |  |
 | `sahou/tests/wasm.sh` | WASM 直跑回归。 |  |  |
 | `sahou/分发版自检.saho` | 发行版冒烟自检脚本（数据库自增 + 网页渲染）。 |  |  |
 
-### 5.4 sahou-harness —— 「一切皆插件」的 agent harness（50 条）
+### 5.4 sahou-harness —— 「一切皆插件」的 agent harness（57 条）
 
 | 文件 | 用途 | 关键依赖 | 改动波及 |
 |---|---|---|---|
@@ -628,6 +632,7 @@ main.go ─┬─> internal/encodesrc（读文件·编码嗅探）
 | `sahou-harness/docs/长程任务架构-功能规划.md` | 功能规划报告（2026-09-27，依据用户提供的 5 张长程任务方法论图）——方法论总结 + 现状对照 + 可添加功能清单 F1~F8 + 实施顺序。 |  |  |
 | `sahou-harness/harness/__init__.py` | 包级文档与版本号。 | 无。 | 改 `__version__` 仅影响元信息展示。 |
 | `sahou-harness/harness/__main__.py` | `python -m harness` 入口。 | `.cli`。 | `main()` 签名变化会波及此处。 |
+| `sahou-harness/harness/approvals.py` | shell/写文件的统一审批门（Ask/allow/deny + 会话内批准记忆 + 命令白名单 + 审计日志）。 | 标准库（json/time/fnmatch/pathlib）。 | 改放行/拒绝语义会波及全部写路径测试（ShellApprovalTests/ApprovalGateTests）。 |
 | `sahou-harness/harness/bootstrap.py` | 工程脚手架（2026-09-27 长程任务 F5）——Bootstrap 工作流前 4 步的确定性部分，CLI `sha bootstrap` 与桌面端 `bootstrap_p… | 标准库 subprocess/pathlib。 | 会向用户工作区写文件并 git 提交——只新增不覆盖是硬约定。 |
 | `sahou-harness/harness/builtins/browser/*` | browser 插件（2026-09-27 功能6）——`fetch_url(url, max_chars)` 抓网页转纯文本。 | 延迟导入 `httpx`（openai 既有依赖）、`html`/`re`/`urllib.parse`。 | 给模型的联网能力面；白名单配置错误会意外放行/拦死。 |
 | `sahou-harness/harness/builtins/chat_loop/plugin.json` | chat_loop 插件清单。 | 无。 | 改 `name` 会改变 `sha status` 显示与主机内 `host.plugins` 键名、`tests/t… |
@@ -653,38 +658,45 @@ main.go ─┬─> internal/encodesrc（读文件·编码嗅探）
 | `sahou-harness/harness/builtins/tools_shell/register.py` | Shell 工具插件——在工作区执行命令，受 `permissions.shell` 权限门控制。 | 标准库 `subprocess`；经 `ctx.host` 使用 `profile.load_config`、`confirm`、`wor… | 命令执行安全；桌面端右侧"终端"页直接复用它，因此权限门语义同时约束 CLI 与桌面。 |
 | `sahou-harness/harness/builtins/tools_todo/*` | tools_todo 插件——**TODO.md 工作区任务索引**（2026-09-27 长程任务架构 F1 重写：原纯内存态 → 持久化 `<工作区>/TODO.md`，Ma… |  |  |
 | `sahou-harness/harness/builtins/tracing/*` | tracing 插件（批次 E）——按天 JSONL 追踪，服务 `tracing.new_tracer`，`sha trace` 读摘要。 |  |  |
+| `sahou-harness/harness/builtins/workflow/*` | 分任务执行工作流内置件（Manus 式）：plugin.json 声明 + register.py 执行器。 | `workflow_store`、`chat_loop._max_iterations`、`schedule_store.write_ba… | 改执行语义需同步 WorkflowStoreTests 与看板刷新。 |
+| `sahou-harness/harness/checkpoints.py` | 写文件/编辑前的检查点（快照 + 撤销）。 | 标准库。 | 撤销语义变更会波及写路径测试。 |
 | `sahou-harness/harness/cli.py` | 命令行入口（`sha` 命令），组装运行时并按子命令分派。 | 标准库 `argparse` / `sys` / `pathlib`；本项目 `.config.Profile`、`.kernel.Har… | `build_runtime` 是所有测试与桌面端的装配点，改动会波及全部测试与 desktop；子命令/参数名是 C… |
 | `sahou-harness/harness/config.py` | JSON 配置与 profile 隔离目录管理（不使用 .env）。 | 标准库 `json` / `pathlib` / `typing`；`shutil` 延迟导入。 | 配置字段是"隐式契约"——`models`/`default_model`/`permissions.{shell,f… |
 | `sahou-harness/harness/desktop.py` | 桌面端——pywebview 原生窗口（Windows 为 WebView2），`DesktopApp` 为进程内 js_api 后端，内嵌单页 `UI_HTML` 作渲染层，页… | 标准库 `hashlib` / `ipaddress` / `json` / `re` / `threading` / `time` /… | 桌面端所有交互行为、模型/插件/技能/工作区/权限/会话的加载路径；改动 `ws_tree`/`chat`/`stat… |
 | `sahou-harness/harness/exporter.py` | 会话导出与用量统计——CLI `sha export/usage` 与桌面端「📤 导出会话 / 🗂 导出全部 / 📈 用量图表」共用的唯一实现（2026-09-27）。 | `harness.config.Profile`；标准库 zipfile / datetime（延迟导入）。 | 导出 Markdown 格式、zip 结构或 usage.jsonl 字段变更会同时影响 CLI 与桌面端展示。 |
 | `sahou-harness/harness/kernel.py` | 微内核——Host 宿主 + 插件上下文 + 生命周期状态机（对齐 DeepSeek Harness 的 Cordis 模型）。 | 标准库 `importlib.util` / `sys` / `uuid` / `dataclasses` / `pathlib` / `… | 内核 API 变更会同时波及 7 个内置插件、`cli.py`、`desktop.py`（经 `host.servic… |
 | `sahou-harness/harness/loader.py` | 插件发现与装载——读取 `plugin.json` 清单 + 以文件路径动态执行 `register.py` 的 `register(ctx)`。 | 标准库 `importlib.util` / `json` / `sys` / `uuid` / `pathlib` / `typing`。 | 加载策略变更直接影响所有插件（含用户安装的）；模块名冲突/清理、相对导入（插件无法 `from .` 自身目录）都受此… |
+| `sahou-harness/harness/notifications.py` | 通知中心存储层（profile 内 notifications.json，推送/未读/已读/容量上限）。 | 标准库。 | JSON 结构变更需同步桌面端渲染。 |
 | `sahou-harness/harness/procutil.py` | subprocess 辅助（2026-09-27）——抑制 GUI（--noconsole）进程里 spawn 控制台程序时的黑色 conhost 窗口闪现。 | 标准库 subprocess。 | 新增任何 subprocess 调用都必须传 `creationflags=CREATE_NO_WINDOW`，否则… |
 | `sahou-harness/harness/py.typed` | PEP 561 标记文件（空文件），让下游 mypy 认 harness 包带类型注解。 |  |  |
+| `sahou-harness/harness/remote.py` | 手机/浏览器远程访问服务（线程化 HTTP，只读会话列表 + 发消息，配对码鉴权）。 | 标准库 http.server/hmac/secrets。 | 安全敏感面——不暴露文件与命令；改路由须保持白名单最小化。 |
 | `sahou-harness/harness/schedule_store.py` | 定时任务的存储层（2026-09-27 功能5）——scheduler 插件与 `sha schedule` CLI 共用的 tasks.json 读写/校验。 | `harness.config.atomic_write_text`。 | 任务文件格式变更会同时影响插件与 CLI。 |
 | `sahou-harness/harness/snippets.py` | 快捷指令（常用提示词片段）存储层（2026-09-27 第六批）——桌面端 ⚡ 菜单与 REPL `/snip` 共用，存 profile config.json 的 `snip… | `harness.config.Profile.mutate_config`（同一把锁内的读-改-写）。 | `snippets` 键结构变更会同时影响桌面端菜单与 REPL 命令。 |
+| `sahou-harness/harness/workflow_store.py` | 工作流文件存储层（`<profile>/workflows/<id>.json`，内置件与桌面端共用）。 | `config.Profile/atomic_write_text`。 | JSON 形状变更需同步看板渲染与续跑语义。 |
 | `sahou-harness/harness/workspace.py` | 工作区路径监狱与文件遍历——所有文件类插件共用的唯一实现（防止越界判定散落各插件）。 | 标准库 pathlib/collections.abc。 | 任何越界判定收紧/放宽都直接改变工具安全边界。 |
 | `sahou-harness/pyproject.toml` | 打包元数据与入口声明。 | `nanoagent >= 0.1.0`、`pywebview >= 5.0`（可选）。 | 改入口名会打断 `sha` 命令、`sha.exe`、`ShaDesktop.exe`；改 `requires-pyt… |
 | `sahou-harness/tests/test_desktop.py` | 桌面端进程内 API 的单元测试（不依赖真实窗口）。 | 标准库 `os` / `sys` / `tempfile` / `unittest` / `pathlib` / `shutil` / `… | 桌面端任意 API 方法签名/返回结构变更都会波及；尤其是 `ws_tree`（`test_ws_tree_lists… |
 | `sahou-harness/tests/test_harness.py` | 内核生命周期、插件装载、模型切换、权限门、端到端对话的离线单元测试。 | 标准库 `json` / `os` / `sys` / `tempfile` / `unittest` / `pathlib`；`harn… | 内核/插件/配置任一契约变更都会使此文件失败；`test_builtin_plugins_all_activate`… |
 | `sahou-harness/tests/test_new_plugins.py` | 功能4-7 的回归测试（2026-09-27）：通知 webhook / 定时任务 / fetch_url / 多模态图片输入。 | `test_harness`（build_host/make_profile/patch_model_build）；`harness.sc… | 三个新插件与 chat_loop images 参数的契约变更都会波及。 |
+| `sahou-harness/tests/test_safety.py` | 安全机制专项测试（审批门 + 检查点）。 | `harness.approvals`、`harness.checkpoints`。 | 改审批/检查点行为后必须全绿。 |
 | `sahou-harness/tools/*` | 开发/打包/测试辅助脚本的统一目录（2026-09-26 批次 F 从仓库根 `git mv` 进来；7 个文件：`build_exe.py` / `run_tests.py`… | `harness.cli` / `harness.desktop.UI_HTML` / `test_harness`；外部 PyInsta… | 打包产物与测试入口；UI_HTML 的 DOM/JS 契约变更需同步 serve_ui_preview 的 MOCK。 |
 
 ## 6. 覆盖度报告
 
-- 磁盘候选文件（已排除 `.git` / `.venv` / `__pycache__` / `node_modules`，含构建产物）：**499**
-- 索引条目：**327**（含 31 条通配聚合条目）
-- 覆盖磁盘文件：**493**（98.8%）
-- 未覆盖：**6**　幽灵条目：**0**
+- 磁盘候选文件（已排除 `.git` / `.venv` / `__pycache__` / `node_modules`，含构建产物）：**907**
+- 索引条目：**338**（含 33 条通配聚合条目）
+- 覆盖磁盘文件：**900**（99.2%）
+- 未覆盖：**7**　幽灵条目：**0**
 
 未覆盖清单：
 
-- `sahou-harness/harness/approvals.py`
-- `sahou-harness/harness/checkpoints.py`
-- `sahou-harness/tests/test_safety.py`
-- `sahou/internal/lsp/lsp_test.go`
-- `sahou/tests/share_codec.mjs`
-- `sahou/留言板.db`
+- `.gitattributes`
+- `.gitignore`
+- `AGENTS.md`
+- `README.md`
+- `aoci.code.txt`
+- `aoci.meta.txt`
+- `aoci.txt`
 
 ## 7. 明细索引导航（全字段）
 
@@ -692,9 +704,9 @@ main.go ─┬─> internal/encodesrc（读文件·编码嗅探）
 |---|---|---|
 | `parts/01-nanoagent-core.md` | nanoagent · 核心源码 | 33 |
 | `parts/02-nanoagent-tests-examples.md` | nanoagent · 测试 / 示例 / 打包元数据 | 46 |
-| `parts/03-sahou-compiler.md` | sahou · 编译器、内建模块与测试脚本 | 78 |
+| `parts/03-sahou-compiler.md` | sahou · 编译器、内建模块与测试脚本 | 80 |
 | `parts/04-sahou-docs-eco.md` | sahou · 文档、stones 标准库、示例、编辑器 | 72 |
-| `parts/05-sahou-harness.md` | sahou-harness · 微内核、桌面端、插件、打包 | 50 |
-| `parts/06-workspace-and-assets.md` | 工作区根 / 资产 / 构建产物 / 补充条目 | 48 |
+| `parts/05-sahou-harness.md` | sahou-harness · 微内核、桌面端、插件、打包 | 57 |
+| `parts/06-workspace-and-assets.md` | 工作区根 / 资产 / 构建产物 / 补充条目 | 51 |
 
 每个条目含完整字段：用途 / 关键内容 / 对外接口 / 依赖 / 被依赖 / 影响范围 / 备注。

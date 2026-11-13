@@ -483,18 +483,37 @@ os.Args
 - **备注**：`FS==nil` 时全部安全返回"没有"；目录包入口固定 `main.saho`。
 
 ### sahou/internal/lsp/lsp.go
-- **用途**：`sahou lsp` 语言服务器（stdio JSON-RPC）：诊断 + 补全 + 悬停。
+- **用途**：`sahou lsp` 语言服务器（stdio JSON-RPC）：诊断 + 补全 + 悬停 + 跳转定义 + 重命名。
 - **关键内容**：
   - `var SharedJSON string`；`type sharedLang struct{ Keywords/Builtins/Modules/Stones }`；`var shared`；`parseShared`。
   - RPC 类型：`rpcMessage/position/rangeT/diagnostic/textDocumentItem/didOpenParams/didChangeParams/publishParams/completionParams`。
   - `completionItems`、`linePrefix`（UTF-16→字节换算）、`filterByPrefix`、`packageNames`。
   - `func Run()`（主循环：initialize/initialized/didOpen/didChange/didClose/completion/hover/shutdown/exit）。
   - `diagnostics`、`toDiag`、`publish`；`wordAt`、`hoverMarkdown`、`containsString`、`dynamicStoneMembers`；帧读 `mustJSON/writeMessage/readFrame/extractFrame`。
+  - 跳转定义/重命名（批41）：`definitionFor/renameTargets/collectDefs`——同文件文本级扫描三类定义（`函数/func 名字(`、`设 名字 为`、`名字 =`），光标前最近定义优先（先调用后定义可跳）；重命名全文整词替换、拒绝含空格的非法新名；`utf16Col` 列换算、`stripComments` 剥注释防误配。
 - **对外接口**：`Run`、`SharedJSON`。
 - **依赖**：`errs`、`interp`、`lexer`、`parser`、`stonesrc`（+ encoding/json 等）。
 - **被依赖**：`main.go`（`lsp` 子命令，先注入 `SharedJSON`）。
 - **影响范围**：编辑器诊断/补全/悬停；VS Code 扩展依赖。
-- **备注**：悬停数据来自 `editors/shared/language.json`（未注入则悬停退化，诊断/补全不受影响）；补全上下文区分"用 \"前缀"/"名字.成员"/其它。
+- **备注**：悬停数据来自 `editors/shared/language.json`（未注入则悬停退化，诊断/补全不受影响）；补全上下文区分"用 \"前缀"/"名字.成员"/其它。批41 已知边界：跳转/重命名不区分作用域、不跨文件；单测见 `internal/lsp/lsp_test.go`。
+
+### sahou/internal/lsp/lsp_test.go
+- **用途**：LSP 跳转定义/重命名的 Go 单元测试（批41 新增）。
+- **关键内容**：三类定义查找与「先调用后定义」、重命名编辑集、非法新名拒绝、UTF-16 列换算、注释剥离。
+- **对外接口**：`go test ./internal/lsp`。
+- **依赖**：`internal/lsp`。
+- **被依赖**：无。
+- **影响范围**：改 `lsp.go` 跳转/重命名逻辑后必须保持全绿。
+- **备注**：纯 Go 单测，不依赖编辑器。
+
+### sahou/tests/share_codec.mjs
+- **用途**：在线体验页分享链接编解码的回归测试（批41 新增，Node 直跑）。
+- **关键内容**：代码 ↔ base64url（`#code=`）往返；URL 安全字符校验（不含 `+/=`）。
+- **对外接口**：`node tests/share_codec.mjs` → 输出 SHARE-CODEC-OK。
+- **依赖**：无（零依赖 Node）。
+- **被依赖**：无。
+- **影响范围**：改 `examples/在线体验/index.html` 的分享编解码后必须重跑。
+- **备注**：与 wasm 无关，秒级完成。
 
 ## cmd/sahouwasm
 

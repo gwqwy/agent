@@ -618,7 +618,7 @@
 - `sahou/editors/tools/genicon.py`：市场图标生成器（把 `icons/saho.svg` 栅格化为 PNG）。
 - `sahou/editors/tools/packvsix.py`：打包 vsix 的辅助脚本。
 - `sahou/editors/vscode/sahou/data/language.json`：`shared/language.json` 的同步副本（**已 diff 确认逐字节相同**）。
-- `sahou/editors/vscode/sahou/extension.js`：扩展主代码（含极简 LSP 客户端；未逐行通读）。
+- `sahou/editors/vscode/sahou/extension.js`：扩展主代码（含极简 LSP 客户端；批41 起注册 Definition/Rename provider，转发 `textDocument/definition` 与 `textDocument/rename` 给语言服务器，服务端未就绪时静默无跳转/无法重命名）。
 - `sahou/editors/vscode/sahou-language-<0.1.0…1.0.0>.vsix`：历史发布产物（10 个 vsix）。
 
 ---

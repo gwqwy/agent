@@ -169,6 +169,14 @@
 - **影响范围**：换证需同步编辑器扩展目录内的副本。
 - **备注**：与 `editors/vscode/sahou/LICENSE` 存在**副本关系，需手工同步**。
 
+### `sahou/examples/在线体验/index.html`
+- **用途**：浏览器在线 playground 宿主页（左写 卅、右看输出，`sahou.wasm` 直接解释）。
+- **关键内容**：`__sahou_run` 调用；编辑器/输出面板；批41 新增 `🔗 分享`——当前代码 base64url 编码进 `#code=…` 并复制到剪贴板，带 hash 打开自动还原（file:// 与 https 均可用）。
+- **依赖**：同目录 `sahou.wasm`、`wasm_exec.js`、`../网页/favicon.svg`。
+- **被依赖**：无（终端页面）。
+- **影响范围**：分享编解码变更须重跑 `tests/share_codec.mjs`；`__sahou_run` 接口变更须与 `cmd/sahouwasm` 同步。
+- **备注**：分享只编码代码文本，不含运行状态。
+
 ### `sahou/wasm_exec.js`
 - **用途**：Go 官方 **WASM 运行时胶水脚本**（`wasm_exec.js`），浏览器/Node 加载 `sahou.wasm` 必需。
 - **关键内容**：`Go` 类、`go.importObject`、`go.run(instance)`；全局 `__sahou_run` 由 sahou 的 wasm 侧注册。
@@ -410,3 +418,21 @@
 - **被依赖**：无。
 - **影响范围**：无。
 - **备注**：**均为一次性排查产物，可整体删除**；若保留，注意 `edgeprofile/` 体积与 `probe_out.txt` 中的环境信息。
+
+## AOCI 与运行时杂项（2026-10-13 登记）
+
+### .aoci/*（通配）
+- **用途**：AOCI（仓库认知索引系统）的运行资产目录——baseline、治理配置、账本、事务历史、scope 变更审批工件与 verify 历史。
+- **关键内容**：config.json（scope 策略/预算）、baseline.json（源码指纹基线）、ledger.jsonl、transactions/、scope-change/。
+- **依赖**：由 aoci CLI/MCP 服务读写，不手工编辑。
+- **被依赖**：AOCI 工具链（aoci.txt / aoci.code.txt / aoci.meta.txt 的治理后端）。
+- **影响范围**：损坏会触发 AOCI 恢复流程；不要手工改动。
+- **备注**：工具运行资产，人只通过 aoci 命令交互。
+
+### sahou/留言板.db
+- **用途**：全栈示例（examples/留言板.saho）运行时生成的嵌入式数据库文件。
+- **关键内容**：`数据库` 模块的 JSON 原子落盘存储（列/自增/行）。
+- **依赖**：由留言板示例运行时创建。
+- **被依赖**：无（可删，重跑示例再生）。
+- **影响范围**：无。
+- **备注**：运行产物入库仅因示例曾在本仓根目录跑过；可安全删除。
